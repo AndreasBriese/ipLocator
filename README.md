@@ -1,17 +1,16 @@
 ipLocator
 =========
 
-ipLocator - a basic Geo-Ip Server made with Go
+ipLocator - a fast basic Geo-Ip Server made with Go
 
 ===
 
-Dependencies:
+#### Dependencies
 
 (1) pure go key/value store <b>boltdb</b> (https://github.com/boltdb/bolt)
 
     go get github.com/boltdb/bolt
 
-===
 
 (2) bloomfilter
 
@@ -19,7 +18,7 @@ Dependencies:
 
 ===
 
-## Usage
+#### Usage
 
 Configure ipLocator with command line options (default values shown)
 
