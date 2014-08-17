@@ -60,5 +60,7 @@ Run ipLocator with
 
 ===
 
-As of 2014-08-17 a demo server is running at https://oo.bootes.uberspace.de 
+As of 2014-08-17 a demo server is running at https://oo.bootes.uberspace.de
+
+As of 2014-08-17 a demo server is running at http://bric.lepus.uberspace.de:61165
 
