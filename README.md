@@ -33,7 +33,9 @@ Configure ipLocator with command line options (default values shown)
  -server=false: run server at localhost:9000
   
 
-Quickstart:
+#### Quickstart:
+
+#####Linux/MacOsX
 
     go run ipLocator.go -download_DB=true -server=true
     
@@ -42,11 +44,20 @@ Quickstart:
 3. loads csv-data into programs database ./iplocs.bdb (~ 500 MB)
 4. starts server at localhost:9000
 
-Windows note: Step 2. relies on /usr/bin/unzip (Linux/BSD/MaxOsX). If running ipLocator on Windows, download the zip database folder from maxmind.com, unzip it (however) and copy GeoLite2-City-Blocks.csv and GeoLite2-City-Locations.csv into the folder containing ipLocator.go
+
+#####Windows 
+
+Download the zipped database folder from maxmind.com manually, unzip it (however) and copy GeoLite2-City-Blocks.csv and GeoLite2-City-Locations.csv into the folder containing ipLocator.go
+
+Run ipLocator with
 
     go run ipLocator.go -new_DB=true -server=true
 
+3. loads csv-data into programs database ./iplocs.bdb (~ 500 MB)
+4. starts server at localhost:9000
   
+
+
 ===
 
 As of 2014-08-17 a demo server is running at https://oo.bootes.uberspace.de 
