@@ -33,3 +33,7 @@ Configure ipLocator with command line options (default values shown)
   
   -server=false: run server at localhost:9000
   
+===
+
+As of 2014-08-17 a demo server is running at https://oo.bootes.uberspace.de 
+
