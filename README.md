@@ -7,7 +7,7 @@ ipLocator - a basic Geo-Ip Server made with Go
 
 Dependencies:
 
-(1) nosql - database boltdb
+(1) nosql - database boltdb (https://github.com/boltdb/bolt)
 
     go get github.com/boltdb/bolt
 
