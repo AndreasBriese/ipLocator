@@ -71,7 +71,7 @@ var infoHTML = `
 			  var xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
 			  }catch(e){};    
 		  };      
-			xmlhttp.open("GET", encodeURI("https://oo.bootes.uberspace.de/json/"+ip), true);
+			xmlhttp.open("GET", encodeURI("http://bric.lepus.uberspace.de:61165/"+ip), true);
 			xmlhttp.onreadystatechange = function() {
 				if (xmlhttp.readyState == 4) {	
 							   document.getElementById("ipLoc").value = xmlhttp.responseText; 
@@ -85,7 +85,7 @@ var infoHTML = `
 <body style="font-family:Arial,sans-serif;font-size:16px;color:#633">
 	<hr color="#006">
 	<h2 style="text-align:center"> 
-		ipLocator @ oo.bootes.uberspace.de 
+		ipLocator @ bric.lepus.uberspace.de 
 	</h2>
 	<hr color="#006">
 	<div>
@@ -100,14 +100,19 @@ var infoHTML = `
 	<h3>API:</h3>
 	<div id="api">
 	<h4>text/plain:</h4>
-	https://<Your URL>/IPv4 
+	http://bric.lepus.uberspace.de/xxx.xxx.xxx.xxx (IPv4) (ssl support https://oo.bootes.uberspace.de/IPv4) 
 	<br>--> xxx.xxx.xxx.xxx: city name (country ISO-abbreviation -region name)
 	<br><small style="margin-left:23px">i.e: 62.227.4.198: Aurich (DE-Lower Saxony)</small>
 	
 	<h4>text/json:</h4>
-	https://<Your URL>/IPv4 
+	http://bric.lepus.uberspace.de/json/xxx.xxx.xxx.xxx (IPv4) (ssl support https://oo.bootes.uberspace.de/json/IPv4) 
 	<br>--> { "xxx.xxx.xxx.xxx": {"city": "city name (country ISO-abbreviation -region name)", "geoLoc":[longitude, latitude]} }
 	<br><small style="margin-left:23px">i.e. { "66.249.70.90":{"city":"Mountain View (US-California)","geoLoc":[37.3860,-122.0838]}</small>
+	
+	<h4>text/javascript: (JSONP)</h4>
+	http://bric.lepus.uberspace.de/iploc/xxx.xxx.xxx.xxx (IPv4) (ssl support https://oo.bootes.uberspace.de/json/IPv4) 
+	<br>--> iploc({ "xxx.xxx.xxx.xxx": {"city": "city name (country ISO-abbreviation -region name)", "geoLoc":[longitude, latitude]} })
+	<br><small style="margin-left:23px">i.e. iploc({ "66.249.70.90":{"city":"Mountain View (US-California)","geoLoc":[37.3860,-122.0838]})</small>
 	</div>
 	<br>
 	
@@ -119,11 +124,11 @@ var infoHTML = `
     <img src="/eTL.png" height="70" style="margin-top:-70px;">
 
     <hr style="color:#006; line-width:0.5px" >
-    <center><small>Datenschutzhinweis: <adjust according to your settings></small></center>
+    <center><small>Datenschutzhinweis: Beim Seitenaufruf werden IP (anonymisiert) & URL für 24h gespeichert.</small></center>
 
 	<hr style="color:#006; line-width:0.5px" >
 	<center><small>This product includes GeoLite2 data created by MaxMind, available from <a href="http://www.maxmind.com">http://www.maxmind.com</a></small></center>
-	<!-- see license at maxmind.com -->
+	
 </body>
 `
 
@@ -336,15 +341,34 @@ type ipInfo struct {
 func rootHandler(w http.ResponseWriter, r *http.Request) {
 	req := strings.Split(r.RequestURI, `/`)
 	ipList := strings.Split(req[len(req)-1], `,`)
-	log.Println(r.RemoteAddr, len(ipList))
-	if len(req) == 3 && req[1] == "json" {
-		flagJSON = true
-		outJSON := "{ "
-		for _, v := range lookUpIPList(iplocsDB, ipList) {
+	log.Println(r.RemoteAddr[:len(r.RemoteAddr)-9], len(ipList))
+	if len(req) == 3 {
+	  	flagJSON = true
+    	outJSON := "{ "
+    	for _, v := range lookUpIPList(iplocsDB, ipList) {
 			outJSON += v + ","
-		}
-		outJSON = outJSON[:len(outJSON)-1] + " }"
-		w.Write([]byte(outJSON))
+    	}
+    	outJSON = outJSON[:len(outJSON)-1] + " }"
+
+		switch req[1]{
+    	case "json":
+      		w.Header().Set(
+				"Content-Type",
+				"text/json; charset=utf-8",
+      		)
+      		w.Header().Set(
+				"Access-Control-Allow-Origin",
+				"*",
+      		) 
+      		w.Write([]byte(outJSON))
+      		break
+    	default:
+      		w.Header().Set(
+				"Content-Type",
+				"text/javascript; charset=utf-8",
+      		)
+      		w.Write([]byte(req[1] + "(" + outJSON + ")"))
+    	}
 	} else {
 		flagJSON = false
 		if req[len(req)-1] == "index.html" || req[len(req)-1] == "" {
@@ -360,12 +384,18 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		} else if req[len(req)-1] == "eTL.png" {
 			http.ServeFile(w, r, "eTL.png")
-		}
-		for k, v := range lookUpIPList(iplocsDB, ipList) {
-			w.Write([]byte(k + ": " + v + "\t"))
+		} else {
+		  	w.Header().Set(
+		    	"Content-Type",
+        		"text/plain; charset=utf-8",
+      		)
+      		for k, v := range lookUpIPList(iplocsDB, ipList) {
+				w.Write([]byte(k + ": " + v + "\t"))
+      		}
 		}
 	}
 }
+
 
 // lookUpIPList
 // takes pointer to current database & ipList []string
