@@ -25,6 +25,7 @@
 package main
 
 import (
+	"archive/zip"
 	"bytes"
 	"encoding/csv"
 	"flag"
@@ -37,7 +38,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -71,7 +71,7 @@ var infoHTML = `
 			  var xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
 			  }catch(e){};    
 		  };      
-			xmlhttp.open("GET", encodeURI("http://bric.lepus.uberspace.de:61165/"+ip), true);
+			xmlhttp.open("GET", encodeURI("http://bric.lepus.uberspace.de:61165/cb/"+ip), true);
 			xmlhttp.onreadystatechange = function() {
 				if (xmlhttp.readyState == 4) {	
 							   document.getElementById("ipLoc").value = xmlhttp.responseText; 
@@ -189,14 +189,10 @@ func main() {
 		defer zipOut.Close()
 		io.Copy(zipOut, resp.Body)
 
-		// unzip CSV.zip using os' unzip command
+	        // unzip CSV.zip 
 		log.Println("unzip CSV.zip")
-		cmd := exec.Command("unzip", "CSV.zip")
-		if err := cmd.Start(); err != nil {
-			log.Fatalln(err)
-		}
-		if err := cmd.Wait(); err != nil {
-			log.Fatal(err)
+		if err := unzip("./CSV.zip", "./"); err != nil {
+			log.Fatalln("failed unzip CSV.zip ")
 		}
 
 		// Attention: if using GeoLite Database you need to change
@@ -330,6 +326,52 @@ func main() {
 		fmt.Println("get ipLocsInfo: ", tmingsLocs/n, "ns/op")
 		log.Println("DB testrun was successful")
 	}
+}
+
+// unzip func right after the testing proc from archive/zip
+func unzip(src, dest string) error {
+	r, err := zip.OpenReader(src)
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+
+	for _, f := range r.File {
+		rc, err := f.Open()
+		if err != nil {
+			return err
+		}
+		defer rc.Close()
+
+		fpath := filepath.Join(dest, f.Name)
+		// log.Println(f.Name)
+		if f.FileInfo().IsDir() {
+			os.MkdirAll(fpath, 0755)
+		} else {
+			var fdir string
+			if lastIndex := strings.LastIndex(fpath, string(os.PathSeparator)); lastIndex > -1 {
+				fdir = fpath[:lastIndex]
+			}
+
+			err = os.MkdirAll(fdir, 0755)
+			if err != nil {
+				log.Fatal(err)
+				return err
+			}
+			f, err := os.OpenFile(
+				fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
+			if err != nil {
+				return err
+			}
+			defer f.Close()
+
+			_, err = io.Copy(f, rc)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 type ipInfo struct {
