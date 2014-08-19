@@ -35,27 +35,14 @@ Configure ipLocator with command line options (default values shown)
 
 #### Quickstart:
 
-#####Linux/MacOsX
+#####Linux/MacOSX/Windows
 
     go run ipLocator.go -download_DB=true -server=true
     
 1. downloads the maxmind.com GeoLite2 - CSV .zip database folder
 2. unzips it  
 3. loads csv-data into programs database ./iplocs.bdb (~ 500 MB)
-4. starts server at localhost:9000
-
-
-#####Windows 
-
-Download the zipped database folder from maxmind.com manually, unzip it (however) and copy GeoLite2-City-Blocks.csv and GeoLite2-City-Locations.csv into the folder containing ipLocator.go
-
-Run ipLocator with
-
-    go run ipLocator.go -new_DB=true -server=true
-
-3. loads csv-data into programs database ./iplocs.bdb (~ 500 MB)
-4. starts server at localhost:9000
-  
+4. starts server at localhost:9000 (--> const ServerAddr within ipLocator.go)
 
 
 ===
