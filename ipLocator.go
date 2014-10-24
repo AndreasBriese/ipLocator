@@ -153,7 +153,6 @@ func init() {
 	flag.BoolVar(&flagServer, "server", false, "run server at localhost:9000")
 	flag.StringVar(&flagIP2check, "ip", "", "enter a csv-list of IP")
 	flag.BoolVar(&flagJSON, "json", false, "return JSON")
-	flag.Parse()
 
 }
 
@@ -169,7 +168,7 @@ func logPanic(function func(http.ResponseWriter, *http.Request)) func(http.Respo
 }
 
 func main() {
-
+	flag.Parse()
 	if flagDownloadDB {
 		log.Println("start loading GeoLite2-City-CSV.zip from maxmind.com")
 		// get GeoLite CSV-Database
