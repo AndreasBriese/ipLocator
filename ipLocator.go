@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-//
+// Version 01/07/2015 ready for 2015 maxmind data format
 
 package main
 
@@ -153,7 +153,6 @@ func init() {
 	flag.BoolVar(&flagServer, "server", false, "run server at localhost:9000")
 	flag.StringVar(&flagIP2check, "ip", "", "enter a csv-list of IP")
 	flag.BoolVar(&flagJSON, "json", false, "return JSON")
-	flag.Parse()
 
 }
 
@@ -169,7 +168,7 @@ func logPanic(function func(http.ResponseWriter, *http.Request)) func(http.Respo
 }
 
 func main() {
-
+	flag.Parse()
 	if flagDownloadDB {
 		log.Println("start loading GeoLite2-City-CSV.zip from maxmind.com")
 		// get GeoLite CSV-Database
@@ -189,7 +188,7 @@ func main() {
 		defer zipOut.Close()
 		io.Copy(zipOut, resp.Body)
 
-	        // unzip CSV.zip 
+		// unzip CSV.zip
 		log.Println("unzip CSV.zip")
 		if err := unzip("./CSV.zip", "./"); err != nil {
 			log.Fatalln("failed unzip CSV.zip ")
@@ -198,18 +197,21 @@ func main() {
 		// Attention: if using GeoLite Database you need to change
 		//            the foldername wildcard GeoLite2-City-CSV*
 		// get pathname and copy -City-Blocks.csv into upper dir
-		pth, err := filepath.Glob("GeoLite2-City-CSV*/GeoLite2-City-Blocks.csv")
-		if err != nil {
-			log.Fatalln("no path GeoLite2-City-CSV*/GeoLite2-City-Blocks.csv", err)
+		pth, err := filepath.Glob("GeoLite2-City-CSV*/GeoLite2-City-Blocks-IPv4.csv")
+		if err != nil || len(pth) == 0 {
+			log.Fatalln("no path GeoLite2-City-CSV*/GeoLite2-City-Blocks-IPv4.csv", err)
 		}
+		log.Println(pth)
 		if err := os.Rename(pth[0], "./GeoLite2-City-Blocks.csv"); err != nil {
 			log.Fatalln("mv City-Blocks", err)
 		}
 
 		// get pathname and copy -City-Locations into upper dir
-		pth, err = filepath.Glob("GeoLite2-City-CSV*/GeoLite2-City-Locations.csv")
-		if err != nil {
-			log.Fatalln("no path GeoLite2-City-CSV*/GeoLite2-City-Locations.csv", err)
+		// change ..-en.csv to other lang (-de|-fr|-pt-BR|-ru|-es|-ja|-zh-CN) to nmeet your client needs
+		pth, err = filepath.Glob("GeoLite2-City-CSV*/GeoLite2-City-Locations-en.csv")
+		if err != nil || len(pth) == 0 {
+			// change ..-en.csv to other lang (-de|-fr|-pt-BR|-ru|-es|-ja|-zh-CN) to nmeet your client needs
+			log.Fatalln("no path GeoLite2-City-CSV*/GeoLite2-City-Locations-en.csv", err)
 		}
 		if err := os.Rename(pth[0], "./GeoLite2-City-Locations.csv"); err != nil {
 			log.Fatalln("mv City-Locations", err)
@@ -385,32 +387,32 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 	ipList := strings.Split(req[len(req)-1], `,`)
 	log.Println(r.RemoteAddr[:len(r.RemoteAddr)-9], len(ipList))
 	if len(req) == 3 {
-	  	flagJSON = true
-    	outJSON := "{ "
-    	for _, v := range lookUpIPList(iplocsDB, ipList) {
+		flagJSON = true
+		outJSON := "{ "
+		for _, v := range lookUpIPList(iplocsDB, ipList) {
 			outJSON += v + ","
-    	}
-    	outJSON = outJSON[:len(outJSON)-1] + " }"
+		}
+		outJSON = outJSON[:len(outJSON)-1] + " }"
 
-		switch req[1]{
-    	case "json":
-      		w.Header().Set(
+		switch req[1] {
+		case "json":
+			w.Header().Set(
 				"Content-Type",
 				"text/json; charset=utf-8",
-      		)
-      		w.Header().Set(
+			)
+			w.Header().Set(
 				"Access-Control-Allow-Origin",
 				"*",
-      		) 
-      		w.Write([]byte(outJSON))
-      		break
-    	default:
-      		w.Header().Set(
+			)
+			w.Write([]byte(outJSON))
+			break
+		default:
+			w.Header().Set(
 				"Content-Type",
 				"text/javascript; charset=utf-8",
-      		)
-      		w.Write([]byte(req[1] + "(" + outJSON + ")"))
-    	}
+			)
+			w.Write([]byte(req[1] + "(" + outJSON + ")"))
+		}
 	} else {
 		flagJSON = false
 		if req[len(req)-1] == "index.html" || req[len(req)-1] == "" {
@@ -427,17 +429,16 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 		} else if req[len(req)-1] == "eTL.png" {
 			http.ServeFile(w, r, "eTL.png")
 		} else {
-		  	w.Header().Set(
-		    	"Content-Type",
-        		"text/plain; charset=utf-8",
-      		)
-      		for k, v := range lookUpIPList(iplocsDB, ipList) {
+			w.Header().Set(
+				"Content-Type",
+				"text/plain; charset=utf-8",
+			)
+			for k, v := range lookUpIPList(iplocsDB, ipList) {
 				w.Write([]byte(k + ": " + v + "\t"))
-      		}
+			}
 		}
 	}
 }
-
 
 // lookUpIPList
 // takes pointer to current database & ipList []string
@@ -493,8 +494,10 @@ func lookUpCityID(db *bolt.DB, s string) (cityID []byte, geoData [][]byte) {
 			return nil
 		}
 		ipBucketCursor := ipBucket.Cursor()
-		ip3prefix := []byte(fmt.Sprintf("::ffff:%v.%v.%v.", findIP[12], findIP[13], findIP[14]))
-		ip2prefix := []byte(fmt.Sprintf("::ffff:%v.%v.", findIP[12], findIP[13]))
+		// ip3prefix := []byte(fmt.Sprintf("::ffff:%v.%v.%v.", findIP[12], findIP[13], findIP[14]))
+		ip3prefix := []byte(fmt.Sprintf("%v.%v.%v.", findIP[12], findIP[13], findIP[14]))
+		// ip2prefix := []byte(fmt.Sprintf("::ffff:%v.%v.", findIP[12], findIP[13]))
+		ip2prefix := []byte(fmt.Sprintf("%v.%v.", findIP[12], findIP[13]))
 		doneCIDRBloom := bbloom.New(65536, 0.01)
 		if ipBloom.Has(ip3prefix) {
 			for k, v := ipBucketCursor.Seek(ip3prefix); bytes.HasPrefix(k, ip3prefix); k, v = ipBucketCursor.Next() {
@@ -505,7 +508,8 @@ func lookUpCityID(db *bolt.DB, s string) (cityID []byte, geoData [][]byte) {
 				if IPMask.Contains(findIP) {
 					// fmt.Println(1, strings.Split(string(v), `,`))
 					info = strings.Split(string(v), `,`)
-					geoData = append(geoData, []byte(info[4]), []byte(info[5]))
+					// geoData = append(geoData, []byte(info[4]), []byte(info[5]))
+					geoData = append(geoData, []byte(info[6]), []byte(info[7]))
 					cityID = []byte(info[0])
 					return nil
 				}
@@ -522,7 +526,8 @@ func lookUpCityID(db *bolt.DB, s string) (cityID []byte, geoData [][]byte) {
 					if IPMask.Contains(findIP) {
 						// fmt.Println(2, strings.Split(string(v), `,`))
 						info = strings.Split(string(v), `,`)
-						geoData = append(geoData, []byte(info[4]), []byte(info[5]))
+						// geoData = append(geoData, []byte(info[4]), []byte(info[5]))
+						geoData = append(geoData, []byte(info[6]), []byte(info[7]))
 						cityID = []byte(info[0])
 						return nil
 					}
@@ -539,7 +544,8 @@ func lookUpCityID(db *bolt.DB, s string) (cityID []byte, geoData [][]byte) {
 				if IPMask.Contains(findIP) {
 					// fmt.Println(3, strings.Split(string(v), `,`))
 					info = strings.Split(string(v), `,`)
-					geoData = append(geoData, []byte(info[4]), []byte(info[5]))
+					// geoData = append(geoData, []byte(info[4]), []byte(info[5]))
+					geoData = append(geoData, []byte(info[6]), []byte(info[7]))
 					cityID = []byte(info[0])
 					return nil
 				}
@@ -592,7 +598,8 @@ func makeDatabase(db *bolt.DB) (dbErr error) {
 			}
 			location_id := []byte(data[0])
 			if !locsBloom.Has(location_id) {
-				locsBuck.Put(location_id, []byte(data[7]+" ("+data[3]+"-"+data[6]+")"))
+				// locsBuck.Put(location_id, []byte(data[7]+" ("+data[3]+"-"+data[6]+")"))
+				locsBuck.Put(location_id, []byte(data[10]+" ("+data[4]+"-"+data[7]+")"))
 				locsBloom.Add(location_id)
 			}
 		}
@@ -623,10 +630,12 @@ func makeDatabase(db *bolt.DB) (dbErr error) {
 			if err != nil || data == nil {
 				break
 			}
-			if len(data[0]) < 2 || data[0][0:2] != "::" {
-				continue
-			}
-			ipBuck, err := strconv.ParseUint(strings.Split(data[0][7:], `.`)[0], 10, 8)
+			// removed for 2015th new maxmind database format
+			// if len(data[0]) < 2 || data[0][0:2] != "::" {
+			// 	continue
+			// }
+			// ipBuck, err := strconv.ParseUint(strings.Split(data[0][7:], `.`)[0], 10, 8)
+			ipBuck, err := strconv.ParseUint(strings.Split(data[0], `.`)[0], 10, 8)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -634,8 +643,10 @@ func makeDatabase(db *bolt.DB) (dbErr error) {
 			if err != nil {
 				log.Fatal(err)
 			}
-			ipMask := []byte(data[0] + "/" + data[1])
-			ipBucket.Put(ipMask, []byte(strings.Join(data[2:], ",")))
+			// ipMask := []byte(data[0] + "/" + data[1])
+			ipMask := []byte(data[0])
+			//ipBucket.Put(ipMask, []byte(strings.Join(data[2:], ",")))
+			ipBucket.Put(ipMask, []byte(strings.Join(data[1:], ",")))
 
 			ip3prefix := []byte(strings.Join(strings.SplitAfterN(data[0], `.`, 4)[0:3], ``))
 			ipBloom.Add(ip3prefix)
