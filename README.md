@@ -3,6 +3,8 @@ ipLocator
 
 ipLocator - a fast basic Geo-Ip Server made with Go
 
+(v. 01/07/2015 Meets maxmind.com 2015 database format. See comments in code for options.) 
+
 ===
 
 #### Dependencies
