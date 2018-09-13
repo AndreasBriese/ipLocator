@@ -1,5 +1,6 @@
 ipLocator
 =========
+[![Build Status](https://travis-ci.org/AndreasBriese/ipLocator.png?branch=master)](http://travis-ci.org/AndreasBriese/ipLocator)
 
 ipLocator - a fast basic Geo-Ip Server made with Go
 
